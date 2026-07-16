@@ -1,4 +1,4 @@
-# 私域运营效果分析报告生成 Skill
+# 私域运营效果分析报告生成
 
 基于品牌私域运营数据底表，通过4层递进分析模型，自动生成标准化的私域运营效果分析报告。
 
@@ -6,10 +6,10 @@
 
 ## 项目简介
 
-本项目是 TRAE 平台的 Skill 定义，用于自动化生成餐饮品牌私域运营效果分析报告。通过读取标准化的 Excel 数据底表，执行效果验证、对比验证、归因验证、放大验证四层分析，最终输出：
+本项目是一套独立的 Python 分析工具，用于自动化生成餐饮品牌私域运营效果分析报告。通过读取标准化的 Excel 数据底表，执行效果验证、对比验证、归因验证、放大验证四层分析，最终输出：
 
-- 本地 HTML 交互式报告（含 ECharts 图表）
-- 飞书在线文档（含静态图表图片）
+- **优先模式**：飞书在线文档（含静态图表图片，需安装飞书CLI）
+- **回退模式**：本地 HTML 交互式报告（含 ECharts 图表，无需飞书CLI）
 - 8 张 matplotlib 生成的 PNG 图表
 
 分析核心问题：**私域运营是否真正提升了用户消费频次？提升的幅度和归因是否可靠？**
@@ -44,10 +44,12 @@
 - Callout语义系统：positive(✅)、neutral(💡)、warning(⚠️)、risk(❌)
 - 响应式布局，适配桌面与移动端
 
-### 双渠道输出
+### 双模式输出
 
-- **HTML报告**：本地浏览器打开，交互式 ECharts 图表
-- **飞书文档**：在线分享，支持评论协作，含静态图表
+| 模式 | 条件 | 输出 |
+|:---|:---|:---|
+| **优先模式** | 已安装 `lark-cli` | 飞书在线文档（含静态图表图片） |
+| **回退模式** | 未安装 `lark-cli` | 本地 HTML 交互式报告（含 ECharts 图表） |
 
 ---
 
@@ -56,12 +58,13 @@
 ### 环境要求
 
 - Python 3.9+
-- TRAE 平台（含 lark-doc、lark-drive skills）
+- 可选：飞书CLI（用于生成飞书文档）
+  - 安装指南：https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
 
 ### Python 依赖
 
 ```bash
-pip install openpyxl pandas matplotlib
+pip install openpyxl pandas matplotlib numpy
 ```
 
 ### 数据底表格式
@@ -75,20 +78,52 @@ pip install openpyxl pandas matplotlib
 | `模型三` | 私域首单新客 vs 非私域首单新客数据 |
 | `模型四` | S卡私域用户 vs 非S卡私域用户数据 |
 
-### TRAE Skill 调用
+### 独立运行（Python脚本）
 
-在 TRAE 中调用本 Skill，需提供以下输入参数：
+```python
+from scripts.extract_data import extract_all_models
+from scripts.generate_charts import generate_all_charts
+from scripts.generate_report import generate_html_report
 
-```yaml
-brand_name: "品牌名称"
-analysis_period: "2026年4月"
-tracking_days: 180
-compare_months: "1个月"
-category: "中式正餐"
-avg_price: 85
-seasonality: "夏季为旺季，冬季为淡季"
-s_card_price: 199
-excel_file: "/path/to/data.xlsx"
+# 1. 提取数据
+data = extract_all_models("/path/to/data.xlsx")
+
+# 2. 生成图表
+charts = generate_all_charts(data, "/path/to/output/charts")
+
+# 3a. 有飞书CLI：生成飞书文档（通过 lark-cli）
+# 见 scripts/create_feishu_doc.py
+
+# 3b. 无飞书CLI：生成HTML报告
+brand = {
+    "name": "去茶去",
+    "period": "2026年4月",
+    "tracking_window": "180天",
+    "compare_period": "2个月",
+    "category": "温州休闲茶餐厅（正餐）",
+    "avg_spend": "70",
+    "season_info": "4月为春夏交替期...",
+    "s_card_price": "98",
+    "s_card_benefits": "开卡送60元代金券+天天88折...",
+}
+generate_html_report(data, "/path/to/output/charts", "/path/to/output/report.html", brand)
+```
+
+### TRAE Skill 调用（可选）
+
+在 TRAE 平台中，本 Skill 也可以通过对话调用：
+
+```
+使用私域运营效果分析报告生成 Skill，
+品牌：去茶去，
+数据时间：2026年4月，
+追踪窗口：180天，
+对比周期：1个月，
+品类：中式正餐，
+人均消费：85元，
+淡旺季：夏季为旺季，冬季为淡季，
+S卡价格：199元，
+数据文件：去茶去-2026年4月份数据底表.xlsx
 ```
 
 ---
@@ -125,10 +160,15 @@ S卡价格：199元，
 
 **3. 查看产出物**
 
-Skill 执行完成后，你将获得：
-- HTML报告：`quchaqu-report/quchaqu-report.html`（浏览器打开）
-- 8张PNG图表：`quchaqu-report/assets/*.png`
+执行完成后，你将获得：
+
+**有飞书CLI（优先模式）：**
 - 飞书文档链接（在线查看和分享）
+- 8张PNG图表：`output/charts/*.png`
+
+**无飞书CLI（回退模式）：**
+- HTML报告：`output/report.html`（浏览器打开）
+- 8张PNG图表：`output/charts/*.png`
 
 ---
 
