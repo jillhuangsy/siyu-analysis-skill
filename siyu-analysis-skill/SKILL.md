@@ -4,19 +4,27 @@
 
 ```yaml
 name: 私域运营效果分析报告生成
-version: 2.0.0
+version: 2.1.0
 description: >
   基于品牌私域运营数据底表，通过4层递进分析模型（效果验证->对比验证->归因验证->放大验证），
-  生成标准化的私域运营效果分析报告。输出包括本地HTML交互式报告和飞书在线文档。
-author: Trae Work
+  生成标准化的私域运营效果分析报告。
+  
+  **双模式输出：**
+  - 优先模式：若已安装飞书CLI，生成飞书在线文档（含静态图表图片）
+  - 回退模式：若未安装飞书CLI，生成本地HTML交互式报告（含ECharts图表）
+  
+  飞书CLI安装指南：https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
 language: zh-CN
-tags: [数据分析, 私域运营, 报告生成, 飞书文档]
+tags: [数据分析, 私域运营, 报告生成, 飞书文档, HTML报告]
 requirements:
   - Python 3.9+
-  - openpyxl / pandas
-  - matplotlib
-  - lark-doc skill (飞书文档创建)
-  - lark-drive skill (图片上传)
+  - openpyxl >= 3.1.0
+  - pandas >= 2.0.0
+  - matplotlib >= 3.7.0
+  - numpy >= 1.24.0
+optional:
+  - lark-cli (飞书CLI，用于生成飞书文档)
+  - 安装指南：https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
 inputs:
   - name: excel_file
     type: file
@@ -55,15 +63,15 @@ inputs:
     description: S卡年费价格（元）
     required: true
 outputs:
-  - name: html_report
-    type: file
-    description: 本地HTML交互式报告（含ECharts图表）
   - name: feishu_doc
     type: lark_doc
-    description: 飞书在线文档（含静态图表图片）
+    description: 飞书在线文档（优先，需安装飞书CLI）
+  - name: html_report
+    type: file
+    description: 本地HTML交互式报告（回退模式，无需飞书CLI）
   - name: chart_images
     type: file[]
-    description: 8张matplotlib生成的PNG图表
+    description: 8张图表PNG文件
 ```
 
 ---
@@ -299,13 +307,23 @@ outputs:
 7. `chart_m4_trend.png` — 模型四：S卡vs非S卡趋势
 8. `chart_m4_roi.png` — 模型四：S卡购买率与频次提升
 
-### Step 6: 创建飞书文档并插入图表
+### Step 6: 环境检测与输出模式选择
 
-**飞书文档创建流程：**
-1. 使用 lark-doc skill 创建新文档
+**环境检测：**
+```bash
+# 检测飞书CLI是否安装
+which lark-cli
+# 或
+lark-cli --version
+```
+
+**分支A：飞书CLI已安装（优先模式）**
+
+执行飞书文档创建流程：
+1. 使用 `lark-cli docs +create` 创建新文档
 2. 文档标题：`{品牌名}私域运营效果分析报告`
-3. 按报告结构逐节写入内容
-4. 使用 lark-drive skill 上传8张PNG图表到云空间
+3. 按报告结构逐节写入内容（XML格式）
+4. 使用 `lark-cli docs +media-insert` 上传8张PNG图表
 5. 在文档对应位置插入图表图片
 6. 设置文档权限（按需）
 
@@ -323,6 +341,19 @@ outputs:
 - 运营建议
 - 最终结论
 - 附录
+
+**分支B：飞书CLI未安装（回退模式）**
+
+生成本地HTML交互式报告：
+1. 使用 `scripts/generate_report.py` 生成完整HTML文件
+2. HTML包含交互式ECharts图表（悬停查看数值、图例切换）
+3. 响应式布局，适配桌面和移动端
+4. 自包含（除ECharts外无外部依赖）
+5. 可直接用浏览器打开
+
+**HTML报告命名：**
+与飞书文档命名规则一致，扩展名为 `.html`，
+如：`去茶去私域运营效果分析报告（2026年4月，近180天，观测2个月）-v.20260716.html`
 
 ### Step 7: 结论校验
 
