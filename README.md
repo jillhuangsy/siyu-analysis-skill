@@ -108,9 +108,9 @@ brand = {
 generate_html_report(data, "/path/to/output/charts", "/path/to/output/report.html", brand)
 ```
 
-### TRAE Skill 调用（可选）
+### AI Agent 调用（可选）
 
-在 TRAE 平台中，本 Skill 也可以通过对话调用：
+在 AI 平台中，本 Skill 也可以通过对话调用：
 
 ```
 使用私域运营效果分析报告生成 Skill，
