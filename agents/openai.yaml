@@ -1,0 +1,4 @@
+interface:
+  display_name: "私域运营分析"
+  short_description: "将私域运营数据转化为证据型分析报告"
+  default_prompt: "Use $siyu-analysis to analyze this private-domain operations workbook and create an evidence-based Chinese report."
