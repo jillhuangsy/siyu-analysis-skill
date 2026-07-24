@@ -1,63 +1,130 @@
 ---
 name: siyu-analysis
-description: Generate an evidence-based Chinese private-domain (私域) operations effectiveness report from a standardized Excel workbook. Use when asked to analyze a brand's private-domain customer-consumption data, compare private-domain and control cohorts, assess first-order customer activation or membership-card effects, and deliver an HTML report with charts.
+description: Generate evidence-based Chinese private-domain (私域) operations reports from standardized Excel workbooks and publish them as HTML or Lark/Feishu documents with model-specific charts. Use for private-domain cohort comparisons, first-order customer activation, membership-card analysis, and the workflow “upload Excel → collect report context → analyze → create a structured report”.
 ---
 
 # 私域运营效果分析
 
-Generate a report only from the supplied workbook. State what the data supports, distinguish association from causation, and retain limitations in the final report.
+只使用用户提供的工作簿和业务信息。区分观察、推断与建议；观察性分组不得写成确定性因果结论。
 
-## Required input
+## 1. 输入流程
 
-Ask for a `.xlsx` workbook and report context if either is absent:
+用户上传 `.xlsx` 后，必须先收集报告信息，再开始分析。
 
-- Brand name and data period.
-- Tracking-window and comparison-period labels.
-- Category, average spend, and seasonality information.
-- Membership-card price and benefits when model four is in scope.
+必填：
 
-Expect exactly four worksheets named `模型一` through `模型四`. The production workbook is a summarized, one-row-per-window/per-cohort/per-frequency-tier table beginning on row 3:
+- 品牌
+- 数据时间
+- 追踪窗口
+- 观测周期
 
-| Sheet | Columns after the leading blank/index column |
+选填，允许留空：
+
+- 品类
+- 人均消费
+- 淡旺季
+- 会员权益卡价格与权益
+
+选填项为空时写“未提供”，不得阻塞分析，不得用示例值补齐。用户填写“请帮我分析”时，只能基于工作簿或有来源的资料分析；无法验证时保留为待补充信息。
+
+## 2. 工作簿校验
+
+标准工作表为 `模型一`、`模型二`、`模型三`、`模型四`，数据从第 3 行开始：
+
+| 工作表 | 去除首列后的字段 |
 | --- | --- |
-| 模型一 | window, frequency tier, count, total, percentage, average frequency |
-| 模型二–四 | window, cohort, frequency tier, count, total, percentage, average frequency |
+| 模型一 | 数据窗口、客户分层、客户数、周期内总客户数、分布占比、平均消费次数 |
+| 模型二至四 | 数据窗口、客户类型、客户分层、客户数、周期内总客户数、分布占比、平均消费次数 |
 
-Use the workbook's cohort labels and values; do not substitute example values. Validate that every needed window, cohort, and frequency tier is present before calculating. If the schema differs, report the missing or unexpected fields and request a mapping rather than guessing.
+要求：
 
-## Analysis rules
+- 使用工作簿中的实际窗口、分组和频次层级，禁止使用脚本默认值或示例值。
+- 校验每个窗口、分组、样本量、频次层级与占比；异常时说明缺项，不得猜测映射。
+- 若缺少模型四，继续完成模型一至三，并在执行摘要和模型四章节写“不可评估”。不得因此删除其他必需章节。
+- 模型二、三的追踪期可以没有 `0次消费客户` 行；其他缺失需明确说明。
+- 高频用户统一定义为工作簿的 `4次及以上消费客户`。
+- 观测期有几个月，就必须纳入全部月份；不得因脚本固定窗口漏掉最后一期。
 
-Apply the four models in this order:
+## 3. 分析规则
 
-1. **效果验证（模型一）**: Describe the private-domain cohort's baseline versus tracking-period frequency and high-frequency (`4次及以上`) share.
-2. **对比验证（模型二）**: Compare private-domain and non-private-domain cohorts only within tracking periods. Do not interpret an initial baseline containing 0→1 new customers as a before/after result.
-3. **归因验证（模型三）**: Compare first-order private-domain new customers with non-private-domain new customers. Calculate the `2次及以上` repurchase rate by summing the 2-, 3-, and 4+-purchase shares.
-4. **放大验证（模型四）**: Compare card and non-card cohorts. Treat purchase of a card as self-selection unless an experimental or matched design is provided.
+1. **模型一｜效果验证**：描述同一私域存量人群基准期与全部追踪期的平均频次、0 次占比和 4 次及以上占比。保留季节性、活动与筛选偏差。
+2. **模型二｜对比验证**：只在相同追踪期比较私域组和非私域对照组。包含 0→1 新客的初始基准不得作为前后效果。
+3. **模型三｜归因验证**：比较私域首单新客和非私域首单新客；`2次及以上复购率`为 2 次、3 次、4 次及以上占比之和。两组仍可能存在渠道、优惠、门店与自选择差异，不得写“可直接归因”。
+4. **模型四｜放大验证**：比较持卡与非持卡人群。购卡属于自选择；没有实验或匹配设计时只写相关性。缺少价格、权益、核销成本和毛利时不得计算 ROI。
 
-For every cohort comparison, report sample size, period, absolute values, relative difference or percentage-point difference, and the relevant caveat. Do not claim causal lift, incremental revenue, or ROI without a defensible design and the required revenue/cost inputs. Do not seasonally adjust data unless the user provides a valid adjustment method.
+每次组间比较必须同时报告：样本量、窗口、绝对值、相对差或百分点差、解释边界。
 
-## Generate the deliverables
+## 4. 模型章节内部顺序
 
-Use the bundled Python modules for the legacy fixed-format workbook only after schema validation:
+每个可用模型严格按以下顺序：
 
-```python
-from scripts.extract_data import extract_all_models
-from scripts.generate_charts import generate_all_charts
-from scripts.generate_report import generate_html_report
+1. 模型说明
+2. 筛选口径：样本人群、时间锚点、剔除规则
+3. 对应图表（1 至 2 张）
+4. 数据明细表
+5. 核心发现
+6. 口径注意
 
-data = extract_all_models(workbook_path)
-chart_paths = generate_all_charts(data, output_dir / "charts")
-report_path = generate_html_report(data, "charts", output_dir / "report.html", brand_info)
+飞书文档中的图表必须位于对应模型章节内，不得统一堆在文末。若使用 `docs +media-insert` 先追加图片，随后必须用 block move 将图片移到该模型的图表锚点，并删除临时锚点。
+
+## 5. 不可省略的报告结构
+
+按以下顺序输出，任何交付模式均不得省略：
+
+1. 报告标题与元数据
+2. 执行摘要
+3. 模型一至模型四
+4. 交叉对比与归因
+5. 数据攻防推演
+6. 运营建议
+7. 最终结论
+8. 附录
+9. 原始 Excel 附件（飞书模式）
+
+### 交叉对比与归因
+
+综合多个模型的方向、强弱和替代解释，形成递进证据链。明确哪一层是前后描述、同期对照、首单新客对比或权益卡相关性；不得把一致方向自动升级为因果。
+
+### 数据攻防推演
+
+至少覆盖：
+
+- 私域组是否因高频用户更愿意加入而领先？
+- 跨期变化是否受淡旺季、节假日或活动影响？
+- 样本量和观测周期是否足以支撑结论？
+- 持卡用户是否本来就更高频？模型四缺失时说明无法回答。
+
+每条按“质疑 → 数据回应 → 尚未排除的解释”书写。
+
+## 6. 交付前硬门禁
+
+生成后必须运行：
+
+```bash
+python scripts/validate_report_structure.py <report.html-or-xml> \
+  --available-models 1,2,3,4 \
+  --expected-charts 8
 ```
 
-Before releasing output, inspect the generated report and all eight charts. Verify labels, cohort order, periods, chart values, chart filenames, and that no defaults or example-specific values appeared in the output. If the bundled modules do not match the workbook schema or contain fixed sample values, repair or replace the affected calculation before producing the report.
+模型四缺失示例：
 
-Structure the HTML report as:
+```bash
+python scripts/validate_report_structure.py <report.html-or-xml> \
+  --available-models 1,2,3 \
+  --expected-charts 6
+```
 
-1. Header with data period, business context, and measurement scope.
-2. Executive summary with evidence and interpretation boundaries.
-3. Four model sections: cohort definition, tables, charts, findings, and limitations.
-4. Cross-model synthesis and prioritized actions.
-5. Methodology, data limitations, and definitions.
+门禁失败时禁止创建或交付飞书文档。修复后重新运行。
 
-Write in concise Chinese. Keep observations, inferences, and recommendations separate. Provide the report path and chart directory in the final response.
+此外必须：
+
+- 抽查至少 5 个关键数字与工作簿一致。
+- 检查全部图表标签、窗口顺序、分组顺序和数值。
+- 检查每张图位于对应模型标题之后、下一模型标题之前。
+- 检查没有示例品牌、固定月份、固定卡价、默认样本或生成器水印。
+- 检查“交叉对比与归因”“数据攻防推演”“附录”均存在。
+- 检查缺失模型仍保留“不可评估”章节。
+
+## 7. 交付
+
+优先创建飞书文档；无法使用飞书时生成 HTML。提供飞书链接或报告路径，并说明缺失模型和选填背景信息。原始 Excel 放在飞书文档末尾作为附件。
