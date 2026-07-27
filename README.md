@@ -142,7 +142,7 @@ generate_html_report(data, "/path/to/output/charts", "/path/to/output/report.htm
 
 **2. 执行 Skill**
 
-在 TRAE 中输入：
+输入：
 
 ```
 使用私域运营效果分析报告生成 Skill，
